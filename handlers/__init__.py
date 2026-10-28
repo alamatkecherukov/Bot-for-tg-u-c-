@@ -1,7 +1,5 @@
 from aiogram import Router
-
 from . import user
-
 
 def setup_routers() -> Router:
     router = Router()
