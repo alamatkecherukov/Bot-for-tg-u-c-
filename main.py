@@ -8,7 +8,6 @@ from aiogram.enums import ParseMode
 from config import load_config
 from handlers import setup_routers
 
-
 async def main() -> None:
     logging.basicConfig(
         level=logging.INFO,
@@ -22,7 +21,7 @@ async def main() -> None:
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
     dp = Dispatcher()
-    dp["config"] = config  # прокидываем конфиг в хендлеры
+    dp["config"] = config
     dp.include_router(setup_routers())
 
     try:
@@ -30,7 +29,6 @@ async def main() -> None:
         await dp.start_polling(bot)
     finally:
         await bot.session.close()
-
 
 if __name__ == "__main__":
     asyncio.run(main())
