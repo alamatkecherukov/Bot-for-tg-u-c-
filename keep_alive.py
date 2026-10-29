@@ -13,7 +13,6 @@ def health():
     return "OK"
 
 def run():
-    # Render сам передает порт в переменную окружения PORT (обычно 10000)
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
