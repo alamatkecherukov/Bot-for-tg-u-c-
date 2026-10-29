@@ -9,6 +9,7 @@ from aiogram.types import BotCommand, BotCommandScopeDefault
 from config import load_config
 from handlers import setup_routers
 from keep_alive import keep_alive
+from database import init_db
 
 async def set_commands(bot: Bot):
     commands = [
@@ -24,6 +25,8 @@ async def main() -> None:
     )
 
     keep_alive() 
+    await init_db()
+
     config = load_config()
 
     bot = Bot(
