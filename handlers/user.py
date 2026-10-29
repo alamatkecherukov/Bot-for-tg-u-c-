@@ -1,3 +1,4 @@
+import logging
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
@@ -8,17 +9,30 @@ from states import AskFlow
 
 router = Router()
 
+def is_teacher(user_id: int, config: Config) -> bool:
+    return user_id in config.teacher_ids
+
 @router.message(CommandStart())
-async def cmd_start(message: Message, state: FSMContext) -> None:
+async def cmd_start(message: Message, state: FSMContext, config: Config) -> None:
+    if is_teacher(message.from_user.id, config):
+        await state.clear()
+        await message.answer("Привет! Ты вошел как учитель. Сюда будут приходить вопросы от учеников.")
+        return
+
     await state.clear()
     await state.set_state(AskFlow.waiting_name)
+    # Убрали пример с именем
     await message.answer(
         "Привет! Это бот для вопросов учителю.\n\n"
-        "Как тебя зовут? Напиши имя и фамилию (например: Иван Петров)."
+        "Как тебя зовут?"
     )
 
 @router.message(Command("reset"))
-async def cmd_reset(message: Message, state: FSMContext) -> None:
+async def cmd_reset(message: Message, state: FSMContext, config: Config) -> None:
+    if is_teacher(message.from_user.id, config):
+        await message.answer("Тебе не нужно сбрасывать имя, ты учитель.")
+        return
+
     await state.clear()
     await state.set_state(AskFlow.waiting_name)
     await message.answer("Ок, начнём заново. Как тебя зовут?")
@@ -48,23 +62,26 @@ async def set_name_wrong(message: Message) -> None:
 
 @router.message(AskFlow.asking)
 async def forward_question(message: Message, state: FSMContext, config: Config) -> None:
+    if is_teacher(message.from_user.id, config):
+        await message.answer("Ты учитель, твои сообщения не пересылаются.")
+        return
+
     data = await state.get_data()
     name = data.get("name", "Без имени")
     username = f"@{message.from_user.username}" if message.from_user.username else "—"
-    user_id = message.from_user.id
 
-    header = (
-        f"📩 <b>Новый вопрос</b>\n"
-        f"👤 Имя: {name}\n"
-        f"🔗 Username: {username}\n"
-        f"🆔 ID: <code>{user_id}</code>"
-    )
+    header = f"<b>{name}</b> ({username})"
+    sent_successfully = 0
+    
+    for teacher_id in config.teacher_ids:
+        try:
+            await message.bot.send_message(teacher_id, header)
+            await message.forward(teacher_id)
+            sent_successfully += 1
+        except Exception as e:
+            logging.error(f"Не удалось отправить сообщение учителю {teacher_id}: {e}")
 
-    try:
-        await message.bot.send_message(config.teacher_id, header)
-        await message.forward(config.teacher_id)
+    if sent_successfully > 0:
         await message.answer("Вопрос отправлен учителю ✅\nМожешь задать следующий или нажать /reset, чтобы сменить имя.")
-    except Exception as e:
-        # Чтобы бот не падал молча, если учитель заблокировал бота
-        await message.answer("Не удалось отправить вопрос. Попробуй позже или проверь настройки.")
-        logging.error(f"Ошибка при отправке сообщения учителю: {e}")
+    else:
+        await message.answer("Не удалось отправить вопрос. Попробуй позже.")
