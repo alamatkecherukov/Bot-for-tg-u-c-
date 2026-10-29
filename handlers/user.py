@@ -6,6 +6,7 @@ from aiogram.types import Message
 
 from config import Config
 from states import AskFlow
+from database import save_message
 
 router = Router()
 
@@ -68,13 +69,17 @@ async def forward_question(message: Message, state: FSMContext, config: Config) 
     data = await state.get_data()
     name = data.get("name", "Без имени")
     username = f"@{message.from_user.username}" if message.from_user.username else "—"
-
     header = f"<b>{name}</b> ({username})"
     
     try:
         await message.bot.send_message(config.teacher_id, header)
-        await message.forward(config.teacher_id)
-        await message.answer("Вопрос отправлен учителю ✅\nМожешь задать следующий или нажать /reset, чтобы сменить имя.")
+        sent_msg = await message.bot.copy_message(
+            chat_id=config.teacher_id,
+            from_chat_id=message.chat.id,
+            message_id=message.message_id
+        )
+        await save_message(sent_msg.message_id, message.from_user.id)
+        await message.answer("Вопрос отправлен учителю ✅\nМожешь задать следующий или нажать /reset.")
     except Exception as e:
-        logging.error(f"Не удалось отправить сообщение учителю {config.teacher_id}: {e}")
+        logging.error(f"Ошибка отправки учителю: {e}")
         await message.answer("Не удалось отправить вопрос. Попробуй позже.")
