@@ -10,7 +10,6 @@ from config import load_config
 from handlers import setup_routers
 from keep_alive import keep_alive
 
-# Функция для установки команд в меню Telegram
 async def set_commands(bot: Bot):
     commands = [
         BotCommand(command="start", description="Запустить бота / Начать заново"),
@@ -24,9 +23,7 @@ async def main() -> None:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
 
-    # Запускаем Flask для Render
     keep_alive() 
-
     config = load_config()
 
     bot = Bot(
@@ -34,7 +31,6 @@ async def main() -> None:
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
     
-    # Устанавливаем меню с командами
     await set_commands(bot)
 
     dp = Dispatcher()
