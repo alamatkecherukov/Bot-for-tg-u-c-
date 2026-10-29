@@ -10,7 +10,7 @@ from states import AskFlow
 router = Router()
 
 def is_teacher(user_id: int, config: Config) -> bool:
-    return user_id in config.teacher_ids
+    return user_id == config.teacher_id
 
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext, config: Config) -> None:
@@ -21,7 +21,6 @@ async def cmd_start(message: Message, state: FSMContext, config: Config) -> None
 
     await state.clear()
     await state.set_state(AskFlow.waiting_name)
-    # Убрали пример с именем
     await message.answer(
         "Привет! Это бот для вопросов учителю.\n\n"
         "Как тебя зовут?"
@@ -71,17 +70,11 @@ async def forward_question(message: Message, state: FSMContext, config: Config) 
     username = f"@{message.from_user.username}" if message.from_user.username else "—"
 
     header = f"<b>{name}</b> ({username})"
-    sent_successfully = 0
     
-    for teacher_id in config.teacher_ids:
-        try:
-            await message.bot.send_message(teacher_id, header)
-            await message.forward(teacher_id)
-            sent_successfully += 1
-        except Exception as e:
-            logging.error(f"Не удалось отправить сообщение учителю {teacher_id}: {e}")
-
-    if sent_successfully > 0:
+    try:
+        await message.bot.send_message(config.teacher_id, header)
+        await message.forward(config.teacher_id)
         await message.answer("Вопрос отправлен учителю ✅\nМожешь задать следующий или нажать /reset, чтобы сменить имя.")
-    else:
+    except Exception as e:
+        logging.error(f"Не удалось отправить сообщение учителю {config.teacher_id}: {e}")
         await message.answer("Не удалось отправить вопрос. Попробуй позже.")
