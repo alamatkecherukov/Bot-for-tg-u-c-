@@ -7,22 +7,22 @@ load_dotenv()
 @dataclass(frozen=True)
 class Config:
     bot_token: str
-    teacher_id: int
+    teacher_id: int  # Снова просто число
 
 def load_config() -> Config:
-    # .strip() убирает случайные пробелы, которые часто появляются при копировании на Render
     token = os.getenv("BOT_TOKEN", "").strip()
-    teacher_raw = os.getenv("TEACHER_ID", "").strip()
+    teacher_raw = os.getenv("TEACHER_ID", "").strip() # Ищем TEACHER_ID
 
     if not token:
         raise RuntimeError("BOT_TOKEN не задан или пустой")
     
     if not teacher_raw:
-        raise RuntimeError("TEACHER_ID не задан или пустой. Добавь его в Environment Variables на Render.")
+        raise RuntimeError("TEACHER_ID не задан.")
 
     try:
-        teacher_id = int(teacher_raw)
+        # Если вдруг там несколько ID через запятую, берем первый
+        teacher_id = int(teacher_raw.split(",")[0].strip())
     except ValueError:
-        raise RuntimeError(f"TEACHER_ID должен быть числом (ID из @userinfobot), а пришло: '{teacher_raw}'")
+        raise RuntimeError(f"TEACHER_ID должен быть числом, а пришло: '{teacher_raw}'")
 
     return Config(bot_token=token, teacher_id=teacher_id)
